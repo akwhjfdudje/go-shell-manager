@@ -101,7 +101,6 @@ func prompt(){
 		fmt.Println("[!] Unknown command: ", userinput)
 	}
 	prompt()
-	//TODO - Add error handling to this function, goes without saying that error handling has to be added to the whole codebase
 }
 
 func serve(ip string, port string) {
