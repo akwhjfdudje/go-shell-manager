@@ -6,12 +6,9 @@ import(
 	"net"
 	"strconv"
 	"log"
-	//"io"
 	"bufio"
 	"os"
 	"regexp"
-	//"syscall"
-	//"os/signal"
 
 )
 //Global variables for handling total sessions and killing servers
@@ -48,10 +45,10 @@ func prompt(){
 	var userinput string
 	fmt.Print("[sessions : ", count, "]> ")
 	reader := bufio.NewReader(os.Stdin)
-    userinput, err := reader.ReadString('\n')
-    if err != nil {
-        log.Println("[!] Problem getting user input: ", err)
-    }
+    	userinput, err := reader.ReadString('\n')
+    	if err != nil {
+        	log.Println("[!] Problem getting user input: ", err)
+    	}
 	userinput = strings.TrimSuffix(userinput, "\n")
 	u := strings.Fields(userinput)
 	if len(u) == 0{
@@ -96,7 +93,7 @@ func prompt(){
 		session := sessions[id]
 		session.Interact()
 	case "help":
-		fmt.Println("[?] Available commands:\n    listen: listens on a specified port and IP\n    serve: starts an HTTP server\n    interact: interacts with a session\n    exit:exits the program")
+		fmt.Println("[?] Available commands:\n    listen: listens on a specified port and IP\n    serve: starts an HTTP server\n    interact: interacts with a session\n    exit: exits the program")
 	case "exit":
 		fmt.Println("[*] Exiting program...")
 		os.Exit(0)
