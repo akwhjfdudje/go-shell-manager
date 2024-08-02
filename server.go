@@ -19,6 +19,7 @@ var startedServer bool
 
 func GetIpFromInt(intrf string) (string){
 	//Checks if intrf is already an IP address, returns if so
+	// https://stackoverflow.com/questions/27410764/dial-with-a-specific-address-interface-golang
 	ipv4Regex := `^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$`
 	ipv4Pattern := regexp.MustCompile(ipv4Regex)
 	if ipv4Pattern.MatchString(intrf){
