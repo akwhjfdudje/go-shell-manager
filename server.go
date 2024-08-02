@@ -18,25 +18,30 @@ var killServer chan bool
 var startedServer bool
 
 func GetIpFromInt(intrf string) (string){
+	//Checks if intrf is already an IP address, returns if so
 	ipv4Regex := `^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$`
 	ipv4Pattern := regexp.MustCompile(ipv4Regex)
 	if ipv4Pattern.MatchString(intrf){
 		return intrf
 	}
-	ief, err := net.InterfaceByName(intrf)
-    if err !=nil{
-            fmt.Println("[!] Error getting interface: ",err)
-			return ""
-    }
-    addrs, err := ief.Addrs()
-    if err !=nil{
-            fmt.Println("[!] Error getting addresses: ", err)
-			return ""
-    }
 
-    tcpAddr := &net.TCPAddr{
-        IP: addrs[0].(*net.IPNet).IP,
-    }
+	//Gets the interface
+	ief, err := net.InterfaceByName(intrf)
+    	if err !=nil{
+            fmt.Println("[!] Error getting interface: ",err)
+	return ""
+    	}
+
+	//Gets addresses for the interface, returns the IP in string format
+    	addrs, err := ief.Addrs()
+    	if err !=nil{
+            fmt.Println("[!] Error getting addresses: ", err)
+	return ""
+    	}
+	
+    	tcpAddr := &net.TCPAddr{
+        	IP: addrs[0].(*net.IPNet).IP,
+    	}
 	return tcpAddr.IP.String()
 }
 
@@ -129,7 +134,6 @@ func NewSession(id int, ip string, port string) *Session{
 		Ip: ip,
 		External: make(chan os.Signal, 1),
 		Bg: make(chan bool, 1),
-		//breaking change, will need to see if buffered channels are neccessary
 
 	}	
 }
