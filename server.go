@@ -64,7 +64,7 @@ func prompt(){
 	case "":	
 	case "listen":
 		ip := GetIpFromInt(u[1])
-		if len(u) < 3 || ip == ""{
+		if len(u) < 3 || ip == " "{
 			fmt.Println("[!] Usage: listen <ip or interface> <port>")
 			prompt()
 		}
@@ -92,6 +92,10 @@ func prompt(){
 			prompt()
 		}
 		id, err := strconv.Atoi(u[1])
+		if id >= count{
+			fmt.Println("[!] Invalid id number")
+			prompt()	
+		}
 		if err != nil {
 			fmt.Println("[!] Error in getting id: ", err)
 			prompt()
