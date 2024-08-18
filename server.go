@@ -30,7 +30,7 @@ func GetIpFromInt(intrf string) (string){
 	ief, err := net.InterfaceByName(intrf)
     	if err !=nil{
             fmt.Println("[!] Error getting interface: ",err)
-	return ""
+	//return ""
     	}
 
 	//Gets addresses for the interface, returns the IP in string format
@@ -63,14 +63,14 @@ func prompt(){
 	switch u[0]{
 	case "":	
 	case "listen":
-		if len(u) < 3{
+		ip := GetIpFromInt(u[1])
+		if len(u) < 3 || ip == ""{
 			fmt.Println("[!] Usage: listen <ip or interface> <port>")
 			prompt()
 		}
-		ip := GetIpFromInt(u[1])
 		session := NewSession(count, ip, u[2])
 		sessions = append(sessions, session)
-		count = len(sessions)
+		count = len(sessions)	
 		session.Listen()
 		session.Interact()
 	case "serve":
