@@ -22,32 +22,33 @@ func GetIpFromInt(intrf string) (string){
 	// https://stackoverflow.com/questions/27410764/dial-with-a-specific-address-interface-golang
 	ipv4Regex := `^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$`
 	ipv4Pattern := regexp.MustCompile(ipv4Regex)
-	if ipv4Pattern.MatchString(intrf){
+	if ipv4Pattern.MatchString(intrf) {
 		return intrf
 	}
 
 	//Gets the interface
 	ief, err := net.InterfaceByName(intrf)
-    	if err !=nil{
-            fmt.Println("[!] Error getting interface: ",err)
-	//return ""
-    	}
+    if err !=nil{
+        fmt.Println("[!] Error getting interface: ",err)
+		return ""
+	}
 
 	//Gets addresses for the interface, returns the IP in string format
-    	addrs, err := ief.Addrs()
-    	if err !=nil{
-            fmt.Println("[!] Error getting addresses: ", err)
-	return ""
-    	}
+    addrs, err := ief.Addrs()
+    if err !=nil{
+        fmt.Println("[!] Error getting addresses: ", err)
+		return ""
+    }
 	
-    	tcpAddr := &net.TCPAddr{
-        	IP: addrs[0].(*net.IPNet).IP,
-    	}
+    tcpAddr := &net.TCPAddr{
+    	IP: addrs[0].(*net.IPNet).IP,
+    }
 	return tcpAddr.IP.String()
 }
 
 func prompt(){
 	//Prompt function to handle user commands
+	fmt.Println(sessions)
 	var userinput string
 	fmt.Print("[sessions : ", count, "]> ")
 	reader := bufio.NewReader(os.Stdin)
@@ -63,14 +64,22 @@ func prompt(){
 	switch u[0]{
 	case "":	
 	case "listen":
-		if len(u) < 3 /*|| ip == " "*/{
+		if len(u) < 3 {
 			fmt.Println("[!] Usage: listen <ip or interface> <port>")
 			prompt()
 		}
 		ip := GetIpFromInt(u[1])
+		if ip == "" {
+			fmt.Println("[!] Invalid IP address or interface.")
+			prompt()
+		}
 		session := NewSession(count, ip, u[2])
+		if session == nil {
+			fmt.Println("[!] Couldn't create session")
+			prompt()
+		}
 		sessions = append(sessions, session)
-		count = len(sessions)	
+		count = len(sessions)
 		session.Listen()
 		session.Interact()
 	case "serve":

@@ -29,6 +29,14 @@ type Session struct{
 
 // Creates a new session, with provided id, ip address, and port to bind to
 func NewSession(id int, ip string, port string) *Session{
+	
+	// Check if port is bound already
+	if BadBind(ip, port) {
+		fmt.Println("[!] Address is in use.")
+		return nil
+	}
+	
+	// Create pointer to a new session
 	fmt.Println("[+] Creating new session...")		
 	return &Session{
 		Id: id,
@@ -139,6 +147,20 @@ func (s *Session) KillSession() {
 	sessions[s.Id] = nil
 }
 
+// Function to check if a given ip:port is bound
+func BadBind(ip string, port string) (bool) {
+	ln, err := net.Listen("tcp", ip + ":" + port)
+	if err != nil {
+		fmt.Println("[!] Error binding: ", err)
+		if ln != nil {
+			ln.Close()
+		}
+		return true
+	}
+	ln.Close()
+	return false
+}
+
 // Method to catch system signals
 func (s *Session) CatchSignal(){
 	//Catches any signal sent to s.External, and handles it
@@ -160,7 +182,7 @@ func (s *Session) CatchSignal(){
 				s.CloseConnection()
 				s.KillSession()
 				// New bugs, yay
-				// TODO: fix segfault from this (?) part of the code
+				// TODO: implement SO_REUSEPORT to allow for port re-use
 				count -= 1
 				signal.Ignore(syscall.SIGINT)
 				fmt.Println("[?] Ctrl-C / exit caught.")
