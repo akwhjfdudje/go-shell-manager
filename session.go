@@ -25,9 +25,22 @@ type Session struct{
 	Bg chan bool
 	Bg2 bool
 }
-// TODO : add session constructor method to this file
 // TODO : add multiple signal functionality
 
+// Creates a new session, with provided id, ip address, and port to bind to
+func NewSession(id int, ip string, port string) *Session{
+	fmt.Println("[+] Creating new session...")		
+	return &Session{
+		Id: id,
+		Port: port,
+		Ip: ip,
+		External: make(chan os.Signal, 1),
+		Bg: make(chan bool, 1),
+
+	}	
+}
+
+// Listen method, to start the listener
 func (s *Session) Listen() {
 	// Start the TCP listener to listen on port "port"
 	var err error
@@ -43,6 +56,7 @@ func (s *Session) Listen() {
 		}	
 }
 
+// Interact method, to interact with the session
 func (s *Session) Interact() {
 	fmt.Println("[+] Interacting with session...")
 	for{

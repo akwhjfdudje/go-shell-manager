@@ -131,17 +131,6 @@ func serve(ip string, port string) {
 	server.Close()			
 	fmt.Println("[*] Closed server.")	
 }
-func NewSession(id int, ip string, port string) *Session{
-	fmt.Println("[+] Creating new session...")		
-	return &Session{
-		Id: id,
-		Port: port,
-		Ip: ip,
-		External: make(chan os.Signal, 1),
-		Bg: make(chan bool, 1),
-
-	}	
-}
 
 func main(){
 	fmt.Println("----Shell Manager----")
