@@ -25,7 +25,8 @@ type Session struct{
 	Bg chan bool
 	Bg2 bool
 }
-
+// TODO : add session constructor method to this file
+// TODO : add multiple signal functionality
 
 func (s *Session) Listen() {
 	// Start the TCP listener to listen on port "port"
@@ -47,7 +48,8 @@ func (s *Session) Interact() {
 	for{
 		//Creates pipe to take output from connection and put in stdout
 		s.Outread, s.Outwrite = io.Pipe()
-		signal.Notify(s.External, syscall.SIGTSTP)
+		signal.Notify(s.External, syscall.SIGTSTP)	
+		signal.Notify(s.External, syscall.SIGINT)
 		for {
 			//Handling SIGTSTP to close output to os.stdout
 			go func(){
@@ -92,12 +94,20 @@ func (s *Session) CatchSignal(){
 	//Catches any signal sent to s.External, and handles it
 	for {
 		select{
-		case <- s.External: 
-			s.Bg <- true
-			//s.Bg <- true
-			s.Bg2 = true
-			fmt.Println("[*] Ctrl-Z caught. Backgrounding current session...")
-			return		
+		case sig := <- s.External: 
+			if sig == syscall.SIGTSTP {
+				s.Bg <- true
+				//s.Bg <- true
+				s.Bg2 = true
+				signal.Ignore(syscall.SIGTSTP)
+				fmt.Println("[*] Ctrl-Z caught. Backgrounding current session...")
+				return
+			}
+			if sig == syscall.SIGINT {
+				fmt.Println("[?] Ctrl-C / exit caught.")
+				signal.Ignore(syscall.SIGINT)
+				return
+			}
 		default:
 			break
 		}

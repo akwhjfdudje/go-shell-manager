@@ -63,11 +63,11 @@ func prompt(){
 	switch u[0]{
 	case "":	
 	case "listen":
-		ip := GetIpFromInt(u[1])
-		if len(u) < 3 || ip == " "{
+		if len(u) < 3 /*|| ip == " "*/{
 			fmt.Println("[!] Usage: listen <ip or interface> <port>")
 			prompt()
 		}
+		ip := GetIpFromInt(u[1])
 		session := NewSession(count, ip, u[2])
 		sessions = append(sessions, session)
 		count = len(sessions)	
