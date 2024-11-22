@@ -12,7 +12,7 @@ import (
 )
 
 type Session struct{
-//structure for containing session information, such as the "id" of the session, io buffers, the listener and connection streams, 
+// structure for containing session information, such as the "id" of the session, io buffers, the listener and connection streams, 
 	Id int
 	Port string
 	Ip string
@@ -49,61 +49,97 @@ func (s *Session) Listen() {
 	if err != nil {
 		fmt.Println("[!] Error binding: ", err)
 	}
-		// Accept the connection
-		s.Conn, err = s.Listener.Accept()
-		if err != nil {
-			fmt.Println("[!] Error accepting connection: ", err)
-		}	
+	// Accept the connection
+	s.Conn, err = s.Listener.Accept()
+	if err != nil {
+		fmt.Println("[!] Error accepting connection: ", err)
+	}	
+}
+
+// Kill method, function to close buffers for writing and reading
+func (s *Session) KillBuffers() {
+	s.Outwrite.Close()
+	s.Outread.Close()
+}
+
+// Close method, function to close connection
+func (s *Session) CloseConnection() {
+	err := s.Conn.Close()
+	if err != nil {
+		fmt.Println("[!] Connection closed with errors: ", err)
+	}
+}
+
+// Method to handle system signals
+func (s *Session) StartNotifiers() {
+	signal.Notify(s.External, syscall.SIGTSTP)	
+	signal.Notify(s.External, syscall.SIGINT)
+}
+
+// These four methods attempt to pipe input from stdin to connection,
+// and back, from conn to stdout
+func (s *Session) StartPipes() {
+	//Creates pipe to take output from connection and put in stdout
+	s.Outread, s.Outwrite = io.Pipe()
+}
+
+func (s *Session) GetOutputToStdout() {
+	select{
+	case <- s.Bg:
+		s.KillBuffers()
+		return 
+	default:
+		io.Copy(os.Stdout,s.Outread)	
+	}
+}
+
+func (s *Session) GetOutputFromConn() {
+	select{
+	case <- s.Bg:
+		s.KillBuffers()
+		return 
+	default:
+		io.Copy(s.Outwrite, s.Conn)	
+	}
+}
+
+func (s *Session) GetInputFromStdin() {
+	//Reads from stdin and sends to the connection
+	s.Input = bufio.NewReader(os.Stdin)
+	cmd, err := s.Input.ReadString('\n')
+	if err != nil{
+		log.Fatal("Cannot send message: ", err)
+	}
+	s.Conn.Write([]byte(cmd))
 }
 
 // Interact method, to interact with the session
 func (s *Session) Interact() {
 	fmt.Println("[+] Interacting with session...")
 	for{
-		//Creates pipe to take output from connection and put in stdout
-		s.Outread, s.Outwrite = io.Pipe()
-		signal.Notify(s.External, syscall.SIGTSTP)	
-		signal.Notify(s.External, syscall.SIGINT)
+		s.StartPipes()
+		s.StartNotifiers()
 		for {
 			//Handling SIGTSTP to close output to os.stdout
-			go func(){
-				select{
-				case <- s.Bg:
-					s.Outwrite.Close()
-					s.Outread.Close()
-					return
-				default:
-					io.Copy(s.Outwrite, s.Conn)	
-				}
-			} ()
-			go func(){
-				select{
-				case <- s.Bg:
-					s.Outread.Close()
-					s.Outwrite.Close()
-					return 
-				default:
-					io.Copy(os.Stdout,s.Outread)	
-				}
-			} ()		
+			go s.GetOutputFromConn()
+			go s.GetOutputToStdout()		
 			go s.CatchSignal()
 			if s.Bg2{
 				break
 			}
-			//Reads from stdin and sends to the connection	
-			//fmt.Println("this line will be printed in an interact command")
-			s.Input = bufio.NewReader(os.Stdin)
-			cmd, err := s.Input.ReadString('\n')
-			if err != nil{
-				log.Fatal("Cannot send message: ", err)
-			}
-			s.Conn.Write([]byte(cmd))
+			s.GetInputFromStdin()
 		}
 		s.Bg2 = false
 		return
 	}
 } 
 
+// Method to kill session
+func (s *Session) KillSession() {
+	sessions[s.Id] = nil
+}
+
+// Method to catch system signals
 func (s *Session) CatchSignal(){
 	//Catches any signal sent to s.External, and handles it
 	for {
@@ -111,15 +147,23 @@ func (s *Session) CatchSignal(){
 		case sig := <- s.External: 
 			if sig == syscall.SIGTSTP {
 				s.Bg <- true
-				//s.Bg <- true
 				s.Bg2 = true
+				s.KillBuffers()
 				signal.Ignore(syscall.SIGTSTP)
 				fmt.Println("[*] Ctrl-Z caught. Backgrounding current session...")
 				return
 			}
 			if sig == syscall.SIGINT {
-				fmt.Println("[?] Ctrl-C / exit caught.")
+				s.Bg <- true
+				s.Bg2 = true
+				s.KillBuffers()
+				s.CloseConnection()
+				s.KillSession()
+				// New bugs, yay
+				// TODO: fix segfault from this (?) part of the code
+				count -= 1
 				signal.Ignore(syscall.SIGINT)
+				fmt.Println("[?] Ctrl-C / exit caught.")
 				return
 			}
 		default:
