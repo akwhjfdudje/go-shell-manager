@@ -2,7 +2,7 @@ package main
 
 import (
 	"log"
-	"time"
+	//"time"
 	"net"
 	"os"
 	"io"
@@ -32,6 +32,8 @@ type Session struct{
 
 // Method to create config for current session
 func (s *Session) CreateConfig() {
+	// This code works, can reuse ports
+	// TODO: manage when ports can't be reused
 	s.Config = net.ListenConfig{
 		Control: func(network, address string, c syscall.RawConn) error {
 			var OpErr error
@@ -51,11 +53,12 @@ func (s *Session) CreateConfig() {
 func NewSession(id int, ip string, port string) *Session{
 	
 	// Check if port is bound already
+	/*
 	if BadBind(ip, port) {
 		fmt.Println("[!] Address is in use.")
 		return nil
 	}
-	
+	*/
 	// Create pointer to a new session
 	fmt.Println("[+] Creating new session...")		
 	return &Session{
@@ -73,14 +76,16 @@ func (s *Session) Listen() {
 	var err error
 	fmt.Println("[+] Starting listener on " + s.Ip + ":" + s.Port + "...")
 	s.CreateConfig()
-	s.Listener, err = s.Config.Listen(context.WithCancel(context.Background()), "tcp", s.Ip + ":" + s.Port)
+	s.Listener, err = s.Config.Listen(context.Background(), "tcp", s.Ip + ":" + s.Port)
 	if err != nil {
 		fmt.Println("[!] Error binding: ", err)
+		return
 	}
 	// Accept the connection
 	s.Conn, err = s.Listener.Accept()
 	if err != nil {
 		fmt.Println("[!] Error accepting connection: ", err)
+		return
 	}	
 }
 
@@ -201,7 +206,7 @@ func (s *Session) CatchSignal(){
 				s.Bg2 = true
 				s.KillBuffers()
 				s.CloseConnection()
-				time.Sleep(2 * time.Second)
+				//time.Sleep(2 * time.Second)
 				s.KillSession()
 				// New bugs, yay
 				// TODO: implement SO_REUSEPORT to allow for port re-use

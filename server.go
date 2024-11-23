@@ -48,7 +48,6 @@ func GetIpFromInt(intrf string) (string){
 
 func prompt(){
 	//Prompt function to handle user commands
-	fmt.Println(sessions)
 	var userinput string
 	fmt.Print("[sessions : ", count, "]> ")
 	reader := bufio.NewReader(os.Stdin)
