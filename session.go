@@ -13,8 +13,12 @@ import (
 	"context"
 )
 
+// Session object for:
+//	 containing session information, 
+//	 such as the "id" of the session, 
+//   io buffers, 
+//   the listener and connection streams
 type Session struct{
-// structure for containing session information, such as the "id" of the session, io buffers, the listener and connection streams, 
 	Id int
 	Port string
 	Ip string
@@ -29,6 +33,7 @@ type Session struct{
 	Config net.ListenConfig
 }
 // TODO : add multiple signal functionality
+// TODO : fix elements in Session struct to reduce redundancy
 
 // Method to create config for current session
 func (s *Session) CreateConfig() {
@@ -51,14 +56,7 @@ func (s *Session) CreateConfig() {
 
 // Creates a new session, with provided id, ip address, and port to bind to
 func NewSession(id int, ip string, port string) *Session{
-	
-	// Check if port is bound already
-	/*
-	if BadBind(ip, port) {
-		fmt.Println("[!] Address is in use.")
-		return nil
-	}
-	*/
+
 	// Create pointer to a new session
 	fmt.Println("[+] Creating new session...")		
 	return &Session{
@@ -158,7 +156,6 @@ func (s *Session) Interact() {
 			go s.GetOutputToStdout()		
 			go s.CatchSignal()
 			if s.Bg2{
-				defer s.CloseConnection()
 				break
 			}
 			s.GetInputFromStdin()
@@ -196,7 +193,6 @@ func (s *Session) CatchSignal(){
 			if sig == syscall.SIGTSTP {
 				s.Bg <- true
 				s.Bg2 = true
-				s.KillBuffers()
 				signal.Ignore(syscall.SIGTSTP)
 				fmt.Println("[*] Ctrl-Z caught. Backgrounding current session...")
 				return
@@ -212,6 +208,7 @@ func (s *Session) CatchSignal(){
 				// TODO: implement SO_REUSEPORT to allow for port re-use
 				count -= 1
 				signal.Reset(syscall.SIGINT)
+				// TODO: implement signal handling to prevent signals from being caught in the prompt
 				fmt.Println("[?] Ctrl-C / exit caught.")
 				return
 			}
