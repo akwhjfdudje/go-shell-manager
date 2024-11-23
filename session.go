@@ -148,16 +148,18 @@ func (s *Session) GetInputFromStdin() {
 func (s *Session) Interact() {
 	fmt.Println("[+] Interacting with session...")
 	for{
+		// Initializign pipes, signal handlers
 		s.StartPipes()
 		s.StartNotifiers()
 		for {
-			//Handling SIGTSTP to close output to os.stdout
+			// Connecting pipes, handling signals
 			go s.GetOutputFromConn()
 			go s.GetOutputToStdout()		
 			go s.CatchSignal()
 			if s.Bg2{
 				break
 			}
+			// Taking input
 			s.GetInputFromStdin()
 		}
 		s.Bg2 = false
