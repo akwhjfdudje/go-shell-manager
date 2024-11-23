@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 	"net"
 	"os"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"fmt"
 	"syscall"
 	"os/signal"
+	"context"
 )
 
 type Session struct{
@@ -24,8 +26,26 @@ type Session struct{
 	External chan os.Signal
 	Bg chan bool
 	Bg2 bool
+	Config net.ListenConfig
 }
 // TODO : add multiple signal functionality
+
+// Method to create config for current session
+func (s *Session) CreateConfig() {
+	s.Config = net.ListenConfig{
+		Control: func(network, address string, c syscall.RawConn) error {
+			var OpErr error
+			if err := c.Control( func( fd uintptr ) {
+                OpErr = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
+				OpErr = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEPORT, 1)
+            }); err != nil {
+				fmt.Println("[!] Couldn't create configuration: ", err)
+                return err
+            }
+            return OpErr
+		},
+	}
+}
 
 // Creates a new session, with provided id, ip address, and port to bind to
 func NewSession(id int, ip string, port string) *Session{
@@ -44,8 +64,7 @@ func NewSession(id int, ip string, port string) *Session{
 		Ip: ip,
 		External: make(chan os.Signal, 1),
 		Bg: make(chan bool, 1),
-
-	}	
+	}
 }
 
 // Listen method, to start the listener
@@ -53,7 +72,8 @@ func (s *Session) Listen() {
 	// Start the TCP listener to listen on port "port"
 	var err error
 	fmt.Println("[+] Starting listener on " + s.Ip + ":" + s.Port + "...")
-	s.Listener, err = net.Listen("tcp", s.Ip + ":" + s.Port)
+	s.CreateConfig()
+	s.Listener, err = s.Config.Listen(context.WithCancel(context.Background()), "tcp", s.Ip + ":" + s.Port)
 	if err != nil {
 		fmt.Println("[!] Error binding: ", err)
 	}
@@ -64,13 +84,13 @@ func (s *Session) Listen() {
 	}	
 }
 
-// Kill method, function to close buffers for writing and reading
+// Method to close buffers for writing and reading
 func (s *Session) KillBuffers() {
 	s.Outwrite.Close()
 	s.Outread.Close()
 }
 
-// Close method, function to close connection
+// Method to close connection
 func (s *Session) CloseConnection() {
 	err := s.Conn.Close()
 	if err != nil {
@@ -133,6 +153,7 @@ func (s *Session) Interact() {
 			go s.GetOutputToStdout()		
 			go s.CatchSignal()
 			if s.Bg2{
+				defer s.CloseConnection()
 				break
 			}
 			s.GetInputFromStdin()
@@ -157,7 +178,7 @@ func BadBind(ip string, port string) (bool) {
 		}
 		return true
 	}
-	ln.Close()
+	defer ln.Close()
 	return false
 }
 
@@ -180,11 +201,12 @@ func (s *Session) CatchSignal(){
 				s.Bg2 = true
 				s.KillBuffers()
 				s.CloseConnection()
+				time.Sleep(2 * time.Second)
 				s.KillSession()
 				// New bugs, yay
 				// TODO: implement SO_REUSEPORT to allow for port re-use
 				count -= 1
-				signal.Ignore(syscall.SIGINT)
+				signal.Reset(syscall.SIGINT)
 				fmt.Println("[?] Ctrl-C / exit caught.")
 				return
 			}
