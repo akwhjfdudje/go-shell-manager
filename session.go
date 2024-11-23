@@ -184,8 +184,6 @@ func BadBind(ip string, port string) (bool) {
 	return false
 }
 
-
-
 // Method to catch system signals
 func (s *Session) CatchSignal(){
 	//Catches any signal sent to s.External, and handles it
